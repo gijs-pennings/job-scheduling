@@ -18,7 +18,7 @@ fun optimizePairwise(input: Input, initial: Assignment = input.randomAssignment(
             for (i in 0 until n1) t[i+n0] = input.t[m1.jobs[i]]
 
             if (t.size > 32) break@outer  // ugly fail-safe against rare illegal input to m=2 solver
-            val (assignment, makespan) = solve2Unsorted(t)
+            val (assignment, makespan) = solve2(t)
 
             if (makespan < m0.time) {
                 val new0 = ArrayList<Int>(t.size * 3/4)  // hopefully large enough s.t. no resizing is necessary

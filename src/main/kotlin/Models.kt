@@ -40,7 +40,7 @@ class Input(val t: List<Long>, val m: Int) {
         machines.forEach { it.sort() }
         machines.sortBy { it[0] }
         machines.forEachIndexed { j, jobs -> b.append(j+1).append(": [").append(jobs.joinToString()).append("]\n") }
-        b.removeLast()  // newline
+        b.setLength(b.length - 1)  // remove newline
 
         val summary = b.toString()
         println(summary)
@@ -63,13 +63,3 @@ typealias Assignment = IntArray
 typealias Schedule = Pair<Assignment, Long>
 
 operator fun Schedule.compareTo(other: Schedule?) = if (other == null) -1 else second.compareTo(other.second)
-
-
-
-/* * * * * * *
- *   Utils   *
- * * * * * * */
-
-fun LongArray.isSortedDescending() = asSequence().zipWithNext { a, b -> a >= b }.all { it }
-
-fun StringBuilder.removeLast(n: Int = 1) { setLength(length - n) }
