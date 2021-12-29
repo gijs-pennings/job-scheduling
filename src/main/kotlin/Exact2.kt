@@ -2,10 +2,12 @@ import java.util.*
 
 // Horowitz & Sahni, 1974 (with an optimization by Korf & Schreiber, 2013)
 fun solve2(t: LongArray): Schedule2 {
-    assert(t.size <= 32)
+ /* assert(t.size <= 32)
+    assert(t.all { it > 0 }) */
 
-    val A = generateSubsets(t, 0, t.size / 2)
-    val B = generateSubsets(t, t.size / 2, t.size - 1)  // last job is assumed part of complement of current set
+    // to prune permutations, the last job is assumed *not* part of the current set
+    val A = generateSubsets2(t, 0, t.size / 2)
+    val B = generateSubsets2(t, t.size / 2, t.size - 1)
     A.sortBy { it.second }
     B.sortByDescending { it.second }
 
@@ -13,7 +15,7 @@ fun solve2(t: LongArray): Schedule2 {
     val perfect0 =  sum      / 2  // floor
     val perfect1 = (sum + 1) / 2  // ceil
 
-    var assignment = 0  // uninitialized
+    var assignment: Assignment2? = null
     var upper = sum + 1
     var lower = -1L
     var kA = 0
@@ -42,19 +44,19 @@ fun solve2(t: LongArray): Schedule2 {
         }
     }
 
-    return Pair(assignment, upper)
+    return Pair(assignment!!, upper)
 }
 
 // TODO: since only n ≈ 20, a simple quadratic approach may be faster
 // Karmarkar & Karp, 1982  (unused)
-private fun computeUpperbound(t: LongArray, sum: Long): Long {
+private fun computeUpperbound2(t: LongArray, sum: Long): Long {
     val q = PriorityQueue<Long>(t.size, reverseOrder())
     for (x in t) q.add(x)
     while (q.size > 1) q += q.poll() - q.poll()
     return (q.peek() + sum) / 2
 }
 
-private fun generateSubsets(t: LongArray, fromIndex: Int, toIndex: Int): MutableList<Schedule2> {
+private fun generateSubsets2(t: LongArray, fromIndex: Int, toIndex: Int): MutableList<Schedule2> {
     val subsets = ArrayList<Schedule2>(1 shl toIndex - fromIndex)  // initial capacity: 2^jobs
     subsets += Pair(0, 0)
     for (i in fromIndex until toIndex) {

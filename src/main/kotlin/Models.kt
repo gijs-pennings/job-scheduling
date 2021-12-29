@@ -47,6 +47,12 @@ class Input(val t: List<Long>, val m: Int) {
         return summary
     }
 
+    @JvmName("printSummary4")
+    fun printSummary(s: Schedule4) = printSummary(Pair(IntArray(n) { (s.first shr it).toInt() and 1 }, s.second))
+
+    @JvmName("printSummary2")
+    fun printSummary(s: Schedule2) = printSummary(Pair(s.first.toLong(), s.second))
+
     fun randomAssignment(r: Random = Random.Default): Assignment = IntArray(n) { r.nextInt(m) }
 
 }
@@ -56,8 +62,11 @@ fun Input(path: String): Input {
     return Input(lines.drop(1).map { it.toLong() }, lines[0].toInt())
 }
 
-typealias Assignment2 = Int  // bit set
+typealias Assignment2 = Int  // bit set, for at most 32 jobs (sufficient for 2 machines)
 typealias Schedule2 = Pair<Assignment2, Long>
+
+typealias Assignment4 = Long  // bit set, for at most 64 jobs (sufficient for 4-5 machines)
+typealias Schedule4 = Pair<Assignment4, Long>
 
 typealias Assignment = IntArray
 typealias Schedule = Pair<Assignment, Long>
