@@ -4,17 +4,13 @@ import kotlin.random.Random
 
 class Input(val t: List<Long>, val m: Int) {
 
-    val n: Int get() = t.size
+    val n = t.size
+    val lowerbound = (t.sum() + m-1) / m
 
     init {
         // only consider non-trivial inputs
         assert(t.all { it > 0 })
         assert(m in 2 until n)
-    }
-
-    private fun calculateGap(makespan: Long): Double {
-        val lowerbound = t.sum().toDouble() / m
-        return (makespan - lowerbound) / lowerbound * 100  // percentage
     }
 
     private fun calculateMakespan(assignment: Assignment) =
@@ -31,8 +27,10 @@ class Input(val t: List<Long>, val m: Int) {
         else
             b.append(" (invalid! Δ = ").append(delta).append(")\n")
 
-        // ii. gap
-        b.append("gap = ").append(calculateGap(s.second).toBigDecimal(MathContext(3)).toPlainString()).append("%\n")
+        // ii. overtime
+        val overtime = s.second - lowerbound
+        val gapPercentage = (100.0 * overtime / lowerbound).toBigDecimal(MathContext(3))
+        b.append("overtime = ").append(overtime).append(" (").append(gapPercentage.toPlainString()).append("%)\n")
 
         // iii. assignment
         val machines = MutableList(m) { mutableListOf<Int>() }

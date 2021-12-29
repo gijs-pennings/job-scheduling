@@ -4,15 +4,11 @@ import kotlin.math.max
 fun solve(input: Input): Schedule {
  /* assert(input.n <= 64)
     assert(input.m in 3..5) */
-
-    val t = input.t.toLongArray()
     val initial = optimizePairwise(input, IntArray(input.n) { it % input.m })  // deterministic
-    val perfect = (t.sum() + input.m - 1) / input.m  // ceil
-
-    return if (initial.second <= perfect)
+    return if (initial.second == input.lowerbound)
         initial  // rare, but to ensure invariant of `solveRecursively`
     else
-        solveRecursively(t, input.m, initial.second, perfect) ?: initial
+        solveRecursively(input.t.toLongArray(), input.m, initial.second, input.lowerbound) ?: initial
 }
 
 /**
