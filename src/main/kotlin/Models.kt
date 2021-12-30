@@ -2,6 +2,20 @@ import java.io.File
 import java.math.MathContext
 import kotlin.random.Random
 
+class Machine : Comparable<Machine> {
+    var jobs = mutableListOf<Int>()
+    var time = 0L
+    override fun compareTo(other: Machine) = time.compareTo(other.time)
+}
+
+fun Array<Machine>.toSchedule(input: Input): Schedule {
+    val assignment = IntArray(input.n)
+    for (j in indices)
+        for (i in this[j].jobs)
+            assignment[i] = j
+    return Pair(assignment, last().time)
+}
+
 class Input(val t: List<Long>, val m: Int) {
 
     val n = t.size
@@ -69,12 +83,29 @@ typealias Schedule4 = Pair<Assignment4, Long>
 typealias Assignment = IntArray
 typealias Schedule = Pair<Assignment, Long>
 
+fun Assignment.toMachines(input: Input): Array<Machine> {
+    val machines = Array(input.m) { Machine() }
+    for (i in 0 until input.n) machines[this[i]].jobs += i
+    for (m in machines) m.time = m.jobs.sumOf { input.t[it] }
+    machines.sort()
+    return machines
+}
+
 operator fun Schedule.compareTo(other: Schedule?) = if (other == null) -1 else second.compareTo(other.second)
 
 
 /* * * * * * *\
  *   Utils   *
 \* * * * * * */
+
+fun List<List<Int>>.concatenateToArray(): IntArray {
+    val a = IntArray(sumOf { it.size })
+    var i = 0
+    for (list in this)
+        for (x in list)
+            a[i++] = x
+    return a
+}
 
 inline fun IntArray.indexedBy(transform: (Int) -> Int): IntArray {
     val a = IntArray(size)

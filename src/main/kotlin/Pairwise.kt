@@ -1,9 +1,5 @@
 fun optimizePairwise(input: Input, initial: Assignment = input.randomAssignment()): Schedule {
-    val machines = Array(input.m) { Machine() }
-    for (i in 0 until input.n) machines[initial[i]].jobs += i
-    for (m in machines) m.time = m.jobs.sumOf { input.t[it] }
-    machines.sort()
-
+    val machines = initial.toMachines(input)
     var j0 = machines.lastIndex
     outer@while (j0 > 0) {
         val m0 = machines[j0--]
@@ -40,17 +36,5 @@ fun optimizePairwise(input: Input, initial: Assignment = input.randomAssignment(
             }
         }
     }
-
-    val assignment = IntArray(input.n)
-    for (j in machines.indices)
-        for (i in machines[j].jobs)
-            assignment[i] = j
-
-    return Pair(assignment, machines.last().time)
-}
-
-private class Machine : Comparable<Machine> {
-    var jobs = mutableListOf<Int>()
-    var time = 0L
-    override fun compareTo(other: Machine) = time.compareTo(other.time)
+    return machines.toSchedule(input)
 }

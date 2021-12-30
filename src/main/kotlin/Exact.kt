@@ -1,37 +1,45 @@
 import java.util.*
 import kotlin.collections.ArrayDeque
 import kotlin.math.max
+import kotlin.math.min
 
-fun solve(input: Input): Schedule {
+fun solve(input: Input) = solve(input, null)!!
+
+fun solve(input: Input, knownUpper: Long?): Schedule? {
  /* assert(input.n <= 64)
     assert(input.m in 3..5) */
 
-    val initial = optimizePairwise(input, IntArray(input.n) { it % input.m })  // deterministic
-    if (initial.second == input.lowerbound) return initial  // rare, but to ensure invariant of `solveRecursively`
+    if (knownUpper == input.lowerbound) return null
+    val pairwise = optimizePairwise(input, IntArray(input.n) { it % input.m })  // deterministic
+    if (pairwise.second == input.lowerbound) return pairwise
+    val upper = min(pairwise.second, knownUpper ?: Long.MAX_VALUE)
 
     // conjecture: sorting allows for more pruning in `generateSubsets`,
     //             especially if interlaced (then both A and B benefit)
     val tSorted = input.t.withIndex().sortedByDescending { it.value }.interlaced()
-    val schedule = solveRecursively(LongArray(input.n) { tSorted[it].value }, input.m, initial.second, input.lowerbound)
-    return if (schedule == null)
-        initial
-    else
+    val t = LongArray(input.n) { tSorted[it].value }
+
+    val schedule = solveRecursively(t, input.m, upper, input.lowerbound)
+    return if (schedule == null) {
+        if (knownUpper == null || pairwise.second < knownUpper) pairwise else null
+    } else {
         Pair(schedule.first.indexedBy { tSorted[it].index }, schedule.second)
+    }
 }
 
 /**
  * Schroeppel & Shamir, 1981 and Korf et al., 2014
- * @param best makespan of best (i.e. shortest) complete schedule found so far
+ * @param upper0 makespan of best (i.e. shortest) complete schedule found so far
  * @param maxPrvSum maximum sum of subsets constructed in parent calls (i.e. the weakest link)
  */
-private fun solveRecursively(t: LongArray, m: Int, best: Long, maxPrvSum: Long): Schedule? {
+private fun solveRecursively(t: LongArray, m: Int, upper0: Long, maxPrvSum: Long): Schedule? {
  /* assert(t.isSortedDescending())
     assert(maxPrvSum < best) */
 
     // TODO: is it more efficient to remove this 'special' case? (since it would allow weakest link optimization)
     if (m == 2) {
         val schedule = solve2(t)
-        return if (schedule.second >= best)
+        return if (schedule.second >= upper0)
             null
         else
             Pair(IntArray(t.size) { schedule.first shr it and 1 }, schedule.second)
@@ -40,13 +48,13 @@ private fun solveRecursively(t: LongArray, m: Int, best: Long, maxPrvSum: Long):
     val first = t[0]  // to prune permutations, the first job is assumed always part of the current set
     val sum = t.sum()
 
-    val A = PairingHeap(t, best - first, 1, (t.size + 1) / 2, true)
-    val B = PairingHeap(t, best - first, (t.size + 1) / 2, t.size, false)
-
     var assignmentCurrent: Assignment4? = null
     var assignmentRemainder: Assignment? = null
-    var upper = best
+    var upper = upper0
     var lower = sum - (m-1) * (upper-1)
+
+    val A = PairingHeap(t, upper - first, 1, (t.size + 1) / 2, true)
+    val B = PairingHeap(t, upper - first, (t.size + 1) / 2, t.size, false)
 
     val bs = ArrayDeque<Schedule4>()
     outer@while (!A.isEmpty()) {
@@ -80,7 +88,7 @@ private fun solveRecursively(t: LongArray, m: Int, best: Long, maxPrvSum: Long):
         }
     }
 
-    return if (upper == best)
+    return if (upper == upper0)
         null
     else
         Pair(merge(assignmentCurrent!!, assignmentRemainder!!), upper)
