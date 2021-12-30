@@ -4,11 +4,17 @@ import kotlin.math.max
 fun solve(input: Input): Schedule {
  /* assert(input.n <= 64)
     assert(input.m in 3..5) */
+
     val initial = optimizePairwise(input, IntArray(input.n) { it % input.m })  // deterministic
-    return if (initial.second == input.lowerbound)
-        initial  // rare, but to ensure invariant of `solveRecursively`
-    else
-        solveRecursively(input.t.toLongArray(), input.m, initial.second, input.lowerbound) ?: initial
+    if (initial.second == input.lowerbound) return initial  // rare, but to ensure invariant of `solveRecursively`
+
+    // conjecture: sorting allows for more pruning in `generateSubsets`,
+    //             especially if 'interlaced' (then both A and B benefit)
+    val tSorted = input.t.withIndex().sortedByDescending { it.value }
+    val tOrdered = tSorted.filterIndexed { i, _ -> i % 2 == 0 } + tSorted.filterIndexed { i, _ -> i % 2 == 1 }
+    val t = LongArray(input.n) { tOrdered[it].value }
+    val schedule = solveRecursively(t, input.m, initial.second, input.lowerbound) ?: return initial
+    return Pair(schedule.first.indexedBy { tOrdered[it].index }, schedule.second)
 }
 
 /**
@@ -17,7 +23,8 @@ fun solve(input: Input): Schedule {
  * @param maxPrvSum maximum sum of subsets constructed in parent calls (i.e. the weakest link)
  */
 private fun solveRecursively(t: LongArray, m: Int, best: Long, maxPrvSum: Long): Schedule? {
- /* assert(maxPrvSum < best) */
+ /* assert(t.isSortedDescending())
+    assert(maxPrvSum < best) */
 
     // TODO: is m=2 faster if not treated as a special case? (due to weakest link optimality)
     if (m == 2) {
@@ -28,8 +35,8 @@ private fun solveRecursively(t: LongArray, m: Int, best: Long, maxPrvSum: Long):
             Pair(IntArray(t.size) { schedule.first shr it and 1 }, schedule.second)
     }
 
-    val A = PairingHeap(t, 1, (t.size + 1) / 2, true)
-    val B = PairingHeap(t, (t.size + 1) / 2, t.size, false)
+    val A = PairingHeap(t, best, 1, (t.size + 1) / 2, true)
+    val B = PairingHeap(t, best, (t.size + 1) / 2, t.size, false)
 
     val sum = t.sum()
 
@@ -76,14 +83,14 @@ private fun solveRecursively(t: LongArray, m: Int, best: Long, maxPrvSum: Long):
 
 private class PairingHeap(
     t: LongArray,
+    upper: Long,
     fromIndex: Int,
     toIndex: Int,
     ascending: Boolean  // i.e. whether to use min heap (or max heap)
 ) {
 
-    // TODO: subset generation can be bounded (from above)
-    private val half0 = generateSubsets(t, fromIndex, (fromIndex + toIndex) / 2)
-    private val half1 = generateSubsets(t, (fromIndex + toIndex) / 2, toIndex)
+    private val half0 = generateSubsets(t, upper, fromIndex, (fromIndex + toIndex) / 2)
+    private val half1 = generateSubsets(t, upper, (fromIndex + toIndex) / 2, toIndex)
     private val queue: PriorityQueue<Triple<Int, Int, Long>>  // <i0, i1, half0[i0] + half1[i1]>
 
     init {
@@ -119,14 +126,14 @@ private class PairingHeap(
 
 }
 
-// mostly identical to `generateSubsets2` (bad)
-private fun generateSubsets(t: LongArray, fromIndex: Int, toIndex: Int): MutableList<Schedule4> {
+private fun generateSubsets(t: LongArray, upper: Long, fromIndex: Int, toIndex: Int): MutableList<Schedule4> {
     val subsets = ArrayList<Schedule4>(1 shl toIndex - fromIndex)
     subsets += Pair(0, 0)
     for (i in fromIndex until toIndex) {
         for (sIdx in 0 until subsets.size) {
             val s = subsets[sIdx]
-            subsets += Pair(1L shl i or s.first, t[i] + s.second)
+            val x = t[i] + s.second
+            if (x < upper) subsets += Pair(1L shl i or s.first, x)
         }
     }
     return subsets
