@@ -71,10 +71,25 @@ typealias Schedule = Pair<Assignment, Long>
 
 operator fun Schedule.compareTo(other: Schedule?) = if (other == null) -1 else second.compareTo(other.second)
 
-fun LongArray.isSortedDescending() = asSequence().zipWithNext { a, b -> a >= b }.all { it }
+
+/* * * * * * *\
+ *   Utils   *
+\* * * * * * */
 
 inline fun IntArray.indexedBy(transform: (Int) -> Int): IntArray {
     val a = IntArray(size)
     for (i in indices) a[transform(i)] = this[i]
     return a
 }
+
+fun <T> List<T>.interlaced(): List<T> {
+    val m = (size + 1) / 2
+    return List(size) {
+        if (it < m)
+            this[2*it]
+        else
+            this[2*(it-m) + 1]
+    }
+}
+
+fun LongArray.isSortedDescending() = asSequence().zipWithNext { a, b -> a >= b }.all { it }

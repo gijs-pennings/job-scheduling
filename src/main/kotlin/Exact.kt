@@ -1,4 +1,5 @@
 import java.util.*
+import kotlin.collections.ArrayDeque
 import kotlin.math.max
 
 fun solve(input: Input): Schedule {
@@ -9,16 +10,17 @@ fun solve(input: Input): Schedule {
     if (initial.second == input.lowerbound) return initial  // rare, but to ensure invariant of `solveRecursively`
 
     // conjecture: sorting allows for more pruning in `generateSubsets`,
-    //             especially if 'interlaced' (then both A and B benefit)
-    val tSorted = input.t.withIndex().sortedByDescending { it.value }
-    val tOrdered = tSorted.filterIndexed { i, _ -> i % 2 == 0 } + tSorted.filterIndexed { i, _ -> i % 2 == 1 }
-    val t = LongArray(input.n) { tOrdered[it].value }
-    val schedule = solveRecursively(t, input.m, initial.second, input.lowerbound) ?: return initial
-    return Pair(schedule.first.indexedBy { tOrdered[it].index }, schedule.second)
+    //             especially if interlaced (then both A and B benefit)
+    val tSorted = input.t.withIndex().sortedByDescending { it.value }.interlaced()
+    val schedule = solveRecursively(LongArray(input.n) { tSorted[it].value }, input.m, initial.second, input.lowerbound)
+    return if (schedule == null)
+        initial
+    else
+        Pair(schedule.first.indexedBy { tSorted[it].index }, schedule.second)
 }
 
 /**
- * Schroeppel & Shamir, 1981 and Korf, 2011
+ * Schroeppel & Shamir, 1981 and Korf et al., 2014
  * @param best makespan of best (i.e. shortest) complete schedule found so far
  * @param maxPrvSum maximum sum of subsets constructed in parent calls (i.e. the weakest link)
  */
@@ -26,7 +28,7 @@ private fun solveRecursively(t: LongArray, m: Int, best: Long, maxPrvSum: Long):
  /* assert(t.isSortedDescending())
     assert(maxPrvSum < best) */
 
-    // TODO: is m=2 faster if not treated as a special case? (due to weakest link optimality)
+    // TODO: is it more efficient to remove this 'special' case? (since it would allow weakest link optimization)
     if (m == 2) {
         val schedule = solve2(t)
         return if (schedule.second >= best)
@@ -57,12 +59,13 @@ private fun solveRecursively(t: LongArray, m: Int, best: Long, maxPrvSum: Long):
         val thresholdAdd = lower - s0
         val thresholdRem = upper - s0
         while (!B.isEmpty() && B.peekSum() >= thresholdAdd) bs.addLast(B.pop())
-        while (!bs.isEmpty() && bs.peekFirst().second >= thresholdRem) bs.pollFirst()
+        while (!bs.isEmpty() && bs.first().second >= thresholdRem) bs.removeFirst()
 
-        // TODO: since b is sorted, is another iteration order worthwhile?
+        // TODO: is another iteration order more efficient?
         for (b in bs) {
             val jobs: Assignment4 = jobs0 or b.first
             val s = s0 + b.second
+            if (s < lower) break  // since b.second will only decrease
 
             val schedule = solveRecursively(t.without(jobs), m-1, upper, max(maxPrvSum, s)) ?: continue
             val makespan = max(s, schedule.second)
@@ -137,7 +140,7 @@ private fun generateSubsets(t: LongArray, upper: Long, fromIndex: Int, toIndex: 
     val subsets = ArrayList<Schedule4>(1 shl toIndex - fromIndex)
     subsets += Pair(0, 0)
     for (i in fromIndex until toIndex) {
-        for (sIdx in 0 until subsets.size) {
+        for (sIdx in subsets.indices) {
             val s = subsets[sIdx]
             val x = t[i] + s.second
             if (x < upper) subsets += Pair(1L shl i or s.first, x)

@@ -51,7 +51,7 @@ fun solve2(t: LongArray): Schedule2 {
 // Karmarkar & Karp, 1982  (unused)
 private fun computeUpperbound2(t: LongArray, sum: Long): Long {
     val q = PriorityQueue<Long>(t.size, reverseOrder())
-    for (x in t) q.add(x)
+    for (x in t) q.offer(x)
     while (q.size > 1) q += q.poll() - q.poll()
     return (q.peek() + sum) / 2
 }
@@ -60,7 +60,7 @@ private fun generateSubsets2(t: LongArray, fromIndex: Int, toIndex: Int): Mutabl
     val subsets = ArrayList<Schedule2>(1 shl toIndex - fromIndex)  // initial capacity: 2^jobs
     subsets += Pair(0, 0)
     for (i in fromIndex until toIndex) {
-        for (sIdx in 0 until subsets.size) {  // manual iteration; otherwise ConcurrentModificationException is thrown
+        for (sIdx in subsets.indices) {  // manual iteration; otherwise ConcurrentModificationException is thrown
             val s = subsets[sIdx]
             subsets += Pair(1 shl i or s.first, t[i] + s.second)
         }
