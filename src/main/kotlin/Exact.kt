@@ -35,10 +35,11 @@ private fun solveRecursively(t: LongArray, m: Int, best: Long, maxPrvSum: Long):
             Pair(IntArray(t.size) { schedule.first shr it and 1 }, schedule.second)
     }
 
-    val A = PairingHeap(t, best, 1, (t.size + 1) / 2, true)
-    val B = PairingHeap(t, best, (t.size + 1) / 2, t.size, false)
-
+    val first = t[0]  // to prune permutations, the first job is assumed always part of the current set
     val sum = t.sum()
+
+    val A = PairingHeap(t, best - first, 1, (t.size + 1) / 2, true)
+    val B = PairingHeap(t, best - first, (t.size + 1) / 2, t.size, false)
 
     var assignmentCurrent: Assignment4? = null
     var assignmentRemainder: Assignment? = null
@@ -50,7 +51,8 @@ private fun solveRecursively(t: LongArray, m: Int, best: Long, maxPrvSum: Long):
         val a = A.pop()
 
         val jobs0: Assignment4 = 1L or a.first
-        val s0 = t[0] + a.second  // to prune permutations, the first job is assumed always part of the current set
+        val s0 = first + a.second
+        if (s0 >= upper) break  // since a.second will only increase
 
         val thresholdAdd = lower - s0
         val thresholdRem = upper - s0
@@ -107,6 +109,11 @@ private class PairingHeap(
         // initial combined subsets
         val s1 = half1[0].second
         for (i0 in half0.indices) queue.add(Triple(i0, 0, half0[i0].second + s1))
+
+        // initial pruning
+        if (!ascending)
+            while (peekSum() >= upper)
+                pop()
     }
 
     fun isEmpty() = queue.isEmpty()
