@@ -1,11 +1,10 @@
 import kotlin.math.abs
 
 fun optimizeTuplewise(input: Input, k: Int = 4, initial: Assignment = optimizePairwise(input).first): Schedule {
-    val combinations = generateCombinations(k - 1, input.m - 1)
+    val combinations = generateCombinations(k, input.m)
     val machines = initial.toMachines(input)
     outer@while (true) {
-        for (cPartial in combinations) {
-            val c = cPartial + (input.m - 1)
+        for (c in combinations) {
             val cMachines = c.map { machines[it] }
             val cMakespan = cMachines.last().time
 
@@ -20,7 +19,7 @@ fun optimizeTuplewise(input: Input, k: Int = 4, initial: Assignment = optimizePa
                 for (i in t.indices) cMachines[assignment[i]].jobs += tIndices[i]
                 for (m in cMachines) m.time = m.jobs.sumOf { input.t[it] }
                 machines.sort()
-                continue@outer
+                continue@outer  // restart
             }
         }
         break
@@ -31,7 +30,7 @@ fun optimizeTuplewise(input: Input, k: Int = 4, initial: Assignment = optimizePa
 /**
  * Returns a list of all `k`-combinations of the set `{0, 1, .., m-1}`.
  */
-fun generateCombinations(k: Int, m: Int): List<IntArray> {
+private fun generateCombinations(k: Int, m: Int): List<IntArray> {
     val combinations = mutableListOf<IntArray>()
 
     // base case: j = 0
@@ -47,8 +46,10 @@ fun generateCombinations(k: Int, m: Int): List<IntArray> {
     }
 
     // sort approximately from 'best' to 'worst'
+    val mid = (m-1) / 2.0
     return combinations
-        .map { it to it.sumOf { x -> abs(x - m / 2.0) } }
-        .sortedByDescending { it.second }
+        .map { it to it.sumOf { x -> x - mid } }
+        .sortedBy { abs(it.second) }
+        .sortedBy { it.first.last() != m-1 }
         .map { it.first }
 }
