@@ -17,8 +17,9 @@ fun optimizePairwise(input: Input, initial: Assignment = input.randomAssignment(
             val (assignment, makespan) = solve2(t)
 
             if (makespan < m0.time) {
-                val new0 = ArrayList<Int>(t.size * 3/4)  // hopefully large enough s.t. no resizing is necessary
-                val new1 = ArrayList<Int>(new0.size)
+                val new1Size = assignment.countOneBits()
+                val new0 = ArrayList<Int>(t.size - new1Size)
+                val new1 = ArrayList<Int>(new1Size)
 
                 for (i in 0 until n0)
                     (if ((assignment shr i    and 1) == 0) new0 else new1) += m0.jobs[i]

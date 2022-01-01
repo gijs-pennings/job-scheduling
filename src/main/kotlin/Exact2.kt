@@ -48,7 +48,8 @@ fun solve2(t: LongArray): Schedule2 {
 }
 
 // TODO: since only n ≈ 20, a simple quadratic approach may be faster
-// Karmarkar & Karp, 1982  (unused)
+// Karmarkar & Karp, 1982
+// unused, since bounding `generateSubsets2` did not improve performance, even after sorting `t`
 private fun computeUpperbound2(t: LongArray, sum: Long): Long {
     val q = PriorityQueue<Long>(t.size, reverseOrder())
     for (x in t) q.offer(x)

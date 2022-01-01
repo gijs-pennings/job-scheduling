@@ -73,7 +73,8 @@ private fun solveRecursively(t: LongArray, m: Int, upper0: Long, maxPrvSum: Long
         for (b in bs) {
             val jobs: Assignment4 = jobs0 or b.first
             val s = s0 + b.second
-            if (s < lower) break  // since b.second will only decrease
+            if (s >= upper) continue
+            if (s  < lower) break
 
             val schedule = solveRecursively(t.without(jobs), m-1, upper, max(maxPrvSum, s)) ?: continue
             val makespan = max(s, schedule.second)

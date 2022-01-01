@@ -1,5 +1,6 @@
 import java.io.File
 import java.math.MathContext
+import kotlin.math.max
 import kotlin.random.Random
 
 class Machine : Comparable<Machine> {
@@ -34,25 +35,33 @@ class Input(val t: List<Long>, val m: Int) {
         val b = StringBuilder()
 
         // i. makespan
-        b.append("makespan = ").append(s.second)
+        b.append("makespan = ", s.second)
         val delta = calculateMakespan(s.first) - s.second
         if (delta == 0L)
             b.append(" (valid)\n")
         else
-            b.append(" (invalid! Δ = ").append(delta).append(")\n")
+            b.append(" (invalid! Δ = ", delta, ")\n")
 
         // ii. overtime
         val overtime = s.second - lowerbound
         val gapPercentage = (100.0 * overtime / lowerbound).toBigDecimal(MathContext(3))
-        b.append("overtime = ").append(overtime).append(" (").append(gapPercentage.toPlainString()).append("%)\n")
+        b.append("overtime = ", overtime, " (", gapPercentage.toPlainString(), "%)\n\n")
 
         // iii. assignment
-        val machines = MutableList(m) { mutableListOf<Int>() }
-        s.first.forEachIndexed { i, j -> machines[j] += i+1 }
-        machines.forEach { it.sort() }
-        machines.sortBy { it[0] }
-        machines.forEachIndexed { j, jobs -> b.append(j+1).append(": [").append(jobs.joinToString()).append("]\n") }
-        b.setLength(b.length - 1)  // remove newline
+        val machines = s.first.toMachines(this)
+        machines.forEach { it.jobs.sort() }
+        machines.sortBy { it.jobs[0] }
+        machines.sortBy { it.time }  // stable
+
+        val machinesOvertime = machines.map { it.time - lowerbound }
+        val width = max(8, machinesOvertime.maxOf { it.toString().length })
+
+        b.append("machine  ").appendPadded("overtime", width).append("  jobs\n")
+        machines.forEachIndexed { i, m ->
+            b.appendPadded(i+1, 7)
+            b.append("  ").appendPadded(machinesOvertime[i], width)
+            b.append("  [", m.jobs.map { it + 1 }.joinToString(), "]\n")
+        }
 
         val summary = b.toString()
         println(summary)
@@ -97,6 +106,13 @@ operator fun Schedule.compareTo(other: Schedule?) = if (other == null) -1 else s
 /* * * * * * *\
  *   Utils   *
 \* * * * * * */
+
+fun <T> StringBuilder.appendPadded(x: T, length: Int, padChar: Char = ' '): StringBuilder {
+    val s = if (x is CharSequence) x else x.toString()
+    for (i in 1..max(length - s.length, 0)) append(padChar)
+    append(s)
+    return this
+}
 
 fun List<List<Int>>.concatenateToArray(): IntArray {
     val a = IntArray(sumOf { it.size })
