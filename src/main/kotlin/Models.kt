@@ -3,9 +3,13 @@ import java.math.MathContext
 import kotlin.math.max
 import kotlin.random.Random
 
-class Machine : Comparable<Machine> {
+class Machine : Cloneable, Comparable<Machine> {
     var jobs = mutableListOf<Int>()
     var time = 0L
+    public override fun clone() = Machine().also {
+        it.jobs.addAll(jobs)
+        it.time = time
+    }
     override fun compareTo(other: Machine) = time.compareTo(other.time)
 }
 
@@ -74,7 +78,7 @@ class Input(val t: List<Long>, val m: Int) {
     @JvmName("printSummary2")
     fun printSummary(s: Schedule2) = printSummary(Pair(s.first.toLong(), s.second))
 
-    fun randomAssignment(r: Random = Random.Default): Assignment = IntArray(n) { r.nextInt(m) }
+    fun randomAssignment(r: Random): Assignment = IntArray(n) { r.nextInt(m) }
 
 }
 
@@ -114,20 +118,7 @@ fun <T> StringBuilder.appendPadded(x: T, length: Int, padChar: Char = ' '): Stri
     return this
 }
 
-fun List<List<Int>>.concatenateToArray(): IntArray {
-    val a = IntArray(sumOf { it.size })
-    var i = 0
-    for (list in this)
-        for (x in list)
-            a[i++] = x
-    return a
-}
-
-inline fun IntArray.indexedBy(transform: (Int) -> Int): IntArray {
-    val a = IntArray(size)
-    for (i in indices) a[transform(i)] = this[i]
-    return a
-}
+fun Array<Machine>.deepCopy() = Array(size) { this[it].clone() }
 
 fun <T> List<T>.interlaced(): List<T> {
     val m = (size + 1) / 2

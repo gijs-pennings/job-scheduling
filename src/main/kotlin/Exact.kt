@@ -14,17 +14,10 @@ fun solve(input: Input, knownUpper: Long?): Schedule? {
     if (pairwise.second == input.lowerbound) return pairwise
     val upper = min(pairwise.second, knownUpper ?: Long.MAX_VALUE)
 
-    // conjecture: sorting allows for more pruning in `generateSubsets`,
-    //             especially if interlaced (then both A and B benefit)
-    val tSorted = input.t.withIndex().sortedByDescending { it.value }.interlaced()
-    val t = LongArray(input.n) { tSorted[it].value }
-
-    val schedule = solveRecursively(t, input.m, upper, input.lowerbound)
-    return if (schedule == null) {
-        if (knownUpper == null || pairwise.second < knownUpper) pairwise else null
-    } else {
-        Pair(schedule.first.indexedBy { tSorted[it].index }, schedule.second)
-    }
+    // conjecture: if `input.t` is sorted, `generateSubsets` can prune more
+    //             (especially if `t` is interlaced: then both A and B benefit)
+    return solveRecursively(input.t.toLongArray(), input.m, upper, input.lowerbound)
+        ?: if (knownUpper == null || pairwise.second < knownUpper) pairwise else null
 }
 
 /**

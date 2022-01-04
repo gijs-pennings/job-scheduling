@@ -1,4 +1,9 @@
-fun optimizePairwise(input: Input, initial: Assignment = input.randomAssignment()): Schedule {
+import kotlin.random.Random
+
+fun optimizePairwise(input: Input, random: Random = Random.Default) =
+    optimizePairwise(input, input.randomAssignment(random))
+
+fun optimizePairwise(input: Input, initial: Assignment): Schedule {
     val machines = initial.toMachines(input)
     var j0 = machines.lastIndex
     outer@while (j0 > 0) {
