@@ -1,6 +1,4 @@
 import kotlin.math.abs
-import kotlin.math.ceil
-import kotlin.math.min
 import kotlin.random.Random
 
 fun optimizeTuplewise(input: Input, k: Int = 4, restarts: Int = 0, random: Random = Random.Default): Schedule {
@@ -8,17 +6,14 @@ fun optimizeTuplewise(input: Input, k: Int = 4, restarts: Int = 0, random: Rando
     val tuples = getTuplesOrdered(k, input.m)
     machinesBest.optimize(input.t, k, tuples)
 
-    if (restarts > 0) {
-        var r = 0
-        val restartTuple = getRestartTuple(k, input.m)
-        while (r++ < restarts) {
-            val machines = machinesBest.deepCopy()
-            machines.shuffle(input.t, restartTuple, random)
-            machines.optimize(input.t, k, tuples)
-            if (machinesBest.last().time > machines.last().time) {
-                machinesBest = machines
-                r = 0  // restart with restarts :)
-            }
+    var r = 0
+    while (r++ < restarts) {
+        val machines = machinesBest.deepCopy()
+        machines.shuffle(input.t, k, input.lowerbound, random)
+        machines.optimize(input.t, k, tuples)
+        if (machinesBest.last().time > machines.last().time) {
+            machinesBest = machines
+            r = 0  // restart with restarts :)
         }
     }
 
@@ -33,17 +28,6 @@ private fun getTuplesOrdered(k: Int, m: Int): List<IntArray> {
         .map { it to abs(it.sumOf { x -> x - mid }) }
         .sortedBy { it.second }  // approximately from best to worst
         .map { it.first }
-}
-
-private fun getRestartTuple(k: Int, m: Int): IntArray {
-    val len0 = ceil(1.5 * k).toInt()
-    val len = min(m, len0 + len0 % 2)
-    return IntArray(len) {
-        if (it < (len + 1) / 2)
-            it
-        else
-            m + it - len
-    }
 }
 
 /**
@@ -89,8 +73,17 @@ private fun Array<Machine>.optimize(tAll: List<Long>, k: Int, tuples: List<IntAr
     }
 }
 
-private fun Array<Machine>.shuffle(t: List<Long>, tuple: IntArray, random: Random) {
-    val machines = tuple.map { this[it] }
+private fun Array<Machine>.shuffle(t: List<Long>, k: Int, lowerbound: Long, random: Random) {
+    val machines = if (2*k >= size) this else {
+        var a = 0
+        var b = lastIndex
+        Array(2*k) {
+            if (abs(this[a].time - lowerbound) > abs(this[b].time - lowerbound))
+                this[a++]
+            else
+                this[b--]
+        }
+    }
     val jobs = machines.flatMap { it.jobs }
     for (m in machines) m.jobs.clear()
     for (i in jobs) machines.random(random).jobs += i
