@@ -1,8 +1,14 @@
 import kotlin.math.abs
 import kotlin.random.Random
 
-fun optimizeTuplewise(input: Input, k: Int = 4, restarts: Int = 0, random: Random = Random.Default): Schedule {
-    var machinesBest = optimizePairwise(input, random).first.toMachines(input)  // initial, since pairwise is very fast
+fun optimizeTuplewise(input: Input, k: Int = 4, restarts: Int = 0, random: Random = Random.Default) =
+    optimizeTuplewise(input, optimizePairwise(input, random).first, k, restarts, random)
+
+fun optimizeTuplewise(input: Input, initial: Assignment, k: Int = 4, restarts: Int = 0,
+                      random: Random = Random.Default): Schedule {
+ /* assert(k in 3..5) */
+
+    var machinesBest = initial.toMachines(input)
     val tuples = getTuplesOrdered(k, input.m)
     machinesBest.optimize(input.t, k, tuples)
 
@@ -31,7 +37,8 @@ private fun getTuplesOrdered(k: Int, m: Int): List<IntArray> {
 }
 
 /**
- * Returns a list of all `k`-combinations of the set `{0, 1, .., m-1}` in no particular order.
+ * Returns a list of all [k]-combinations of the set `{0, 1, .., m-1}` in no particular order. Each tuple is sorted in
+ * ascending order.
  */
 private fun generateCombinations(k: Int, m: Int): List<IntArray> {
     val combinations = mutableListOf<IntArray>()
@@ -58,7 +65,7 @@ private fun Array<Machine>.optimize(tAll: List<Long>, k: Int, tuples: List<IntAr
             val tIndices = machines.flatMap { it.jobs }.sortedByDescending { tAll[it] }.interlaced()
             val t = List(tIndices.size) { tAll[tIndices[it]] }
 
-            if (tIndices.size > 64) return  // ugly fail-safe against rare illegal input to exact solver
+            if (t.size > 64) return  // ugly fail-safe against rare illegal input to exact solver
             val (assignment, _) = solve(Input(t, k), machines.last().time) ?: continue
 
             // if not null, the newly found assignment is better than the current

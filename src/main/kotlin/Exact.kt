@@ -3,21 +3,22 @@ import kotlin.collections.ArrayDeque
 import kotlin.math.max
 import kotlin.math.min
 
-fun solve(input: Input) = solve(input, null)!!
+fun solve(input: Input): Schedule {
+    val pairwise = optimizePairwise(input, input.getSimpleAssignment())  // deterministic
+    return solve(input, pairwise.second) ?: pairwise
+}
 
-fun solve(input: Input, knownUpper: Long?): Schedule? {
+/**
+ * If [input]`.t` is sorted, this method is generally faster since that allows for more pruning in [generateSubsets].
+ * For `input.m == 4` the best results were achieved with an 'interlaced' descending order.
+ * @return an optimal solution strictly better than [knownUpper], or `null` if such a solution does not exist
+ */
+fun solve(input: Input, knownUpper: Long): Schedule? {
  /* assert(input.n <= 64)
-    assert(input.m in 3..5) */
-
-    if (knownUpper == input.lowerbound) return null
-    val pairwise = optimizePairwise(input, IntArray(input.n) { it % input.m })  // deterministic
-    if (pairwise.second == input.lowerbound) return pairwise
-    val upper = min(pairwise.second, knownUpper ?: Long.MAX_VALUE)
-
-    // conjecture: if `input.t` is sorted, `generateSubsets` can prune more
-    //             (especially if `t` is interlaced: then both A and B benefit)
-    return solveRecursively(input.t.toLongArray(), input.m, upper, input.lowerbound)
-        ?: if (knownUpper == null || pairwise.second < knownUpper) pairwise else null
+    assert(input.m in 3..5)
+    assert(input.lowerbound <= knownUpper) */
+    if (knownUpper <= input.lowerbound) return null
+    return solveRecursively(input.t.toLongArray(), input.m, knownUpper, input.lowerbound)
 }
 
 /**

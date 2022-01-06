@@ -35,6 +35,9 @@ class Input(val t: List<Long>, val m: Int) {
     private fun calculateMakespan(assignment: Assignment) =
         assignment.withIndex().groupBy { it.value }.maxOf { (_, jobs) -> jobs.sumOf { t[it.index] } }
 
+    fun getRandomAssignment(r: Random): Assignment = IntArray(n) { r.nextInt(m) }
+    fun getSimpleAssignment(): Assignment = IntArray(n) { it % m }
+
     fun printSummary(s: Schedule): String {
         val b = StringBuilder()
 
@@ -77,8 +80,6 @@ class Input(val t: List<Long>, val m: Int) {
 
     @JvmName("printSummary2")
     fun printSummary(s: Schedule2) = printSummary(Pair(s.first.toLong(), s.second))
-
-    fun randomAssignment(r: Random): Assignment = IntArray(n) { r.nextInt(m) }
 
 }
 

@@ -1,7 +1,7 @@
 import kotlin.random.Random
 
 fun optimizePairwise(input: Input, random: Random = Random.Default) =
-    optimizePairwise(input, input.randomAssignment(random))
+    optimizePairwise(input, input.getRandomAssignment(random))
 
 fun optimizePairwise(input: Input, initial: Assignment): Schedule {
     val machines = initial.toMachines(input)
