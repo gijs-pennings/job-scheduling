@@ -4,6 +4,7 @@ fun optimizePairwise(input: Input, random: Random = Random.Default) =
     optimizePairwise(input, input.getRandomAssignment(random))
 
 fun optimizePairwise(input: Input, initial: Assignment): Schedule {
+ /* assert(initial.belongsTo(input)) */
     val machines = initial.toMachines(input)
     var j0 = machines.lastIndex
     outer@while (j0 > 0) {

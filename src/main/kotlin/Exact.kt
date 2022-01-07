@@ -1,7 +1,6 @@
 import java.util.*
 import kotlin.collections.ArrayDeque
 import kotlin.math.max
-import kotlin.math.min
 
 fun solve(input: Input): Schedule {
     val pairwise = optimizePairwise(input, input.getSimpleAssignment())  // deterministic
@@ -16,8 +15,8 @@ fun solve(input: Input): Schedule {
 fun solve(input: Input, knownUpper: Long): Schedule? {
  /* assert(input.n <= 64)
     assert(input.m in 3..5)
-    assert(input.lowerbound <= knownUpper) */
-    if (knownUpper <= input.lowerbound) return null
+    assert(knownUpper >= input.lowerbound) */
+    if (knownUpper == input.lowerbound) return null
     return solveRecursively(input.t.toLongArray(), input.m, knownUpper, input.lowerbound)
 }
 
@@ -27,8 +26,7 @@ fun solve(input: Input, knownUpper: Long): Schedule? {
  * @param maxPrvSum maximum sum of subsets constructed in parent calls (i.e. the weakest link)
  */
 private fun solveRecursively(t: LongArray, m: Int, upper0: Long, maxPrvSum: Long): Schedule? {
- /* assert(t.isSortedDescending())
-    assert(maxPrvSum < best) */
+ /* assert(maxPrvSum < best) */
 
     // TODO: is it more efficient to remove this 'special' case? (since it would allow weakest link optimization)
     if (m == 2) {

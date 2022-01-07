@@ -20,7 +20,7 @@ fun optimizeTuplewise(input: Input, k: Int, triesPerTuple: Int, random: Random =
  * until no further progress is possible.
  */
 fun optimizeTuplewise(input: Input, initial: Assignment, k: Int = DEFAULT_K): Schedule {
-    assert(k in 3..5)
+ /* assert(k in 3..5) */
     return optimizeTuplewiseInternal(input, initial, k) { i, m ->
         if (i.n <= 64)
             solve(i, m)?.first
@@ -36,8 +36,8 @@ fun optimizeTuplewise(input: Input, initial: Assignment, k: Int = DEFAULT_K): Sc
  */
 fun optimizeTuplewise(input: Input, initial: Assignment, k: Int, triesPerTuple: Int,
                       random: Random = Random.Default): Schedule {
-    assert(k in 6 until input.m)
-    assert(triesPerTuple > 0)
+ /* assert(k >= 6)
+    assert(triesPerTuple > 0) */
     return optimizeTuplewiseInternal(input, initial, k) { i, m ->
         val s = List(triesPerTuple) {}
             .parallelStream()
@@ -53,6 +53,8 @@ fun optimizeTuplewise(input: Input, initial: Assignment, k: Int, triesPerTuple: 
 
 private fun optimizeTuplewiseInternal(input: Input, initial: Assignment, k: Int,
                                       optimizeTuple: (Input, Long) -> Assignment?): Schedule {
+ /* assert(initial.belongsTo(input))
+    assert(k < input.m) */
     return initial
         .toMachines(input)
         .apply { optimize(input.t, k, getTuplesOrdered(k, input.m), optimizeTuple) }

@@ -59,10 +59,10 @@ class Input(val t: List<Long>, val m: Int) {
         val machinesOvertime = machines.map { it.time - lowerbound }
         val width = max(8, machinesOvertime.maxOf { it.toString().length })
 
-        b.append("machine  ").appendPadded("overtime", width).append("  jobs\n")
+        b.append("machine  ").appendPaddedStart("overtime", width).append("  jobs\n")
         machines.forEachIndexed { i, m ->
-            b.appendPadded(i+1, 7)
-            b.append("  ").appendPadded(machinesOvertime[i], width)
+            b.appendPaddedStart(i+1, 7)
+            b.append("  ").appendPaddedStart(machinesOvertime[i], width)
             b.append("  [", m.jobs.map { it + 1 }.joinToString(), "]\n")
         }
 
@@ -93,6 +93,8 @@ typealias Schedule4 = Pair<Assignment4, Long>
 typealias Assignment = IntArray
 typealias Schedule = Pair<Assignment, Long>
 
+fun Assignment.belongsTo(input: Input) = size == input.n && all { it in 0 until input.m }
+
 fun Assignment.toMachines(input: Input): Array<Machine> {
     val machines = Array(input.m) { Machine() }
     for (i in 0 until input.n) machines[this[i]].jobs += i
@@ -101,14 +103,12 @@ fun Assignment.toMachines(input: Input): Array<Machine> {
     return machines
 }
 
-operator fun Schedule.compareTo(other: Schedule?) = if (other == null) -1 else second.compareTo(other.second)
-
 
 /* * * * * * *\
  *   Utils   *
 \* * * * * * */
 
-fun <T> StringBuilder.appendPadded(x: T, length: Int, padChar: Char = ' '): StringBuilder {
+fun <T> StringBuilder.appendPaddedStart(x: T, length: Int, padChar: Char = ' '): StringBuilder {
     val s = if (x is CharSequence) x else x.toString()
     for (i in 1..max(length - s.length, 0)) append(padChar)
     append(s)
@@ -124,5 +124,3 @@ fun <T> List<T>.interlaced(): List<T> {
             this[2*(it-m) + 1]
     }
 }
-
-fun LongArray.isSortedDescending() = asSequence().zipWithNext { a, b -> a >= b }.all { it }
