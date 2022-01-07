@@ -1,29 +1,62 @@
 import kotlin.math.abs
 import kotlin.random.Random
 
-fun optimizeTuplewise(input: Input, k: Int = 4, restarts: Int = 0, random: Random = Random.Default) =
-    optimizeTuplewise(input, optimizePairwise(input, random).first, k, restarts, random)
+private const val DEFAULT_K = 4
 
-fun optimizeTuplewise(input: Input, initial: Assignment, k: Int = 4, restarts: Int = 0,
-                      random: Random = Random.Default): Schedule {
- /* assert(k in 3..5) */
+/**
+ * Identical to [optimizeTuplewise] (1) but first a good random initial solution is computed.
+ */
+fun optimizeTuplewise(input: Input, k: Int = DEFAULT_K, random: Random = Random.Default) =
+    optimizeTuplewise(input, optimizePairwise(input, random).first, k)
 
-    var machinesBest = initial.toMachines(input)
-    val tuples = getTuplesOrdered(k, input.m)
-    machinesBest.optimize(input.t, k, tuples)
+/**
+ * Identical to [optimizeTuplewise] (2) but first a good random initial solution is computed.
+ */
+fun optimizeTuplewise(input: Input, k: Int, triesPerTuple: Int, random: Random = Random.Default) =
+    optimizeTuplewise(input, optimizeTuplewise(input, DEFAULT_K, random).first, k, triesPerTuple, random)
 
-    var r = 0
-    while (r++ < restarts) {
-        val machines = machinesBest.deepCopy()
-        machines.shuffle(input.t, k, input.lowerbound, random)
-        machines.optimize(input.t, k, tuples)
-        if (machinesBest.last().time > machines.last().time) {
-            machinesBest = machines
-            r = 0  // restart with restarts :)
-        }
+/**
+ * (1) Attempts to improve an [initial] assignment by optimally solving 'subschedules' of `3 <= `[k]` <= 5` machines
+ * until no further progress is possible.
+ */
+fun optimizeTuplewise(input: Input, initial: Assignment, k: Int = DEFAULT_K): Schedule {
+    assert(k in 3..5)
+    return optimizeTuplewiseInternal(input, initial, k) { i, m ->
+        if (i.n <= 64)
+            solve(i, m)?.first
+        else
+            null  // ugly fail-safe against rare illegal input to exact solver
     }
+}
 
-    return machinesBest.toSchedule(input)
+/**
+ * (2) Attempts to improve an [initial] assignment by approximately solving 'subschedules' of [k]` >= 6` machines. These
+ * subschedules are found by running the 'standard' quadruplewise optimizer [triesPerTuple] times and taking the best.
+ * This uses multithreading.
+ */
+fun optimizeTuplewise(input: Input, initial: Assignment, k: Int, triesPerTuple: Int,
+                      random: Random = Random.Default): Schedule {
+    assert(k in 6 until input.m)
+    assert(triesPerTuple > 0)
+    return optimizeTuplewiseInternal(input, initial, k) { i, m ->
+        val s = List(triesPerTuple) {}
+            .parallelStream()
+            .map { optimizeTuplewise(i, DEFAULT_K, random) }  // TODO: provide `m` as upperbound
+            .min { x, y -> x.second.compareTo(y.second) }.get()
+
+        if (s.second < m)
+            s.first
+        else
+            null
+    }
+}
+
+private fun optimizeTuplewiseInternal(input: Input, initial: Assignment, k: Int,
+                                      optimizeTuple: (Input, Long) -> Assignment?): Schedule {
+    return initial
+        .toMachines(input)
+        .apply { optimize(input.t, k, getTuplesOrdered(k, input.m), optimizeTuple) }
+        .toSchedule(input)
 }
 
 private fun getTuplesOrdered(k: Int, m: Int): List<IntArray> {
@@ -58,15 +91,15 @@ private fun generateCombinations(k: Int, m: Int): List<IntArray> {
     return combinations
 }
 
-private fun Array<Machine>.optimize(tAll: List<Long>, k: Int, tuples: List<IntArray>) {
+private fun Array<Machine>.optimize(tAll: List<Long>, k: Int, tuples: List<IntArray>,
+                                    optimizeTuple: (Input, Long) -> Assignment?) {
     outer@while (true) {
         for (tuple in tuples) {
             val machines = tuple.map { this[it] }
             val tIndices = machines.flatMap { it.jobs }.sortedByDescending { tAll[it] }.interlaced()
             val t = List(tIndices.size) { tAll[tIndices[it]] }
 
-            if (t.size > 64) return  // ugly fail-safe against rare illegal input to exact solver
-            val (assignment, _) = solve(Input(t, k), machines.last().time) ?: continue
+            val assignment = optimizeTuple(Input(t, k), machines.last().time) ?: continue
 
             // if not null, the newly found assignment is better than the current
             for (m in machines) m.jobs.clear()
@@ -78,22 +111,4 @@ private fun Array<Machine>.optimize(tAll: List<Long>, k: Int, tuples: List<IntAr
         }
         break
     }
-}
-
-private fun Array<Machine>.shuffle(t: List<Long>, k: Int, lowerbound: Long, random: Random) {
-    val machines = if (2*k >= size) this else {
-        var a = 0
-        var b = lastIndex
-        Array(2*k) {
-            if (abs(this[a].time - lowerbound) > abs(this[b].time - lowerbound))
-                this[a++]
-            else
-                this[b--]
-        }
-    }
-    val jobs = machines.flatMap { it.jobs }
-    for (m in machines) m.jobs.clear()
-    for (i in jobs) machines.random(random).jobs += i
-    for (m in machines) m.time = m.jobs.sumOf { t[it] }
-    sort()
 }

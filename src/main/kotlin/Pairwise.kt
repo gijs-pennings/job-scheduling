@@ -18,7 +18,7 @@ fun optimizePairwise(input: Input, initial: Assignment): Schedule {
             for (i in 0 until n0) t[i   ] = input.t[m0.jobs[i]]
             for (i in 0 until n1) t[i+n0] = input.t[m1.jobs[i]]
 
-            if (t.size > 32) break@outer  // ugly fail-safe against rare illegal input to m=2 solver
+            if (t.size > 32) break@outer  // ugly fail-safe against rare illegal input to exact solver
             val (assignment, makespan) = solve2(t)
 
             if (makespan < m0.time) {

@@ -3,13 +3,9 @@ import java.math.MathContext
 import kotlin.math.max
 import kotlin.random.Random
 
-class Machine : Cloneable, Comparable<Machine> {
+class Machine : Comparable<Machine> {
     var jobs = mutableListOf<Int>()
     var time = 0L
-    public override fun clone() = Machine().also {
-        it.jobs.addAll(jobs)
-        it.time = time
-    }
     override fun compareTo(other: Machine) = time.compareTo(other.time)
 }
 
@@ -118,8 +114,6 @@ fun <T> StringBuilder.appendPadded(x: T, length: Int, padChar: Char = ' '): Stri
     append(s)
     return this
 }
-
-fun Array<Machine>.deepCopy() = Array(size) { this[it].clone() }
 
 fun <T> List<T>.interlaced(): List<T> {
     val m = (size + 1) / 2
