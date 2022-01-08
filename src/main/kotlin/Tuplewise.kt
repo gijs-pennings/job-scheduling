@@ -21,9 +21,9 @@ fun optimizeTuplewise(input: Input, k: Int, triesPerTuple: Int, random: Random =
  */
 fun optimizeTuplewise(input: Input, initial: Assignment, k: Int = DEFAULT_K): Schedule {
  /* assert(k in 3..5) */
-    return optimizeTuplewiseInternal(input, initial, k) { i, m ->
+    return optimizeTuplewiseInternal(input, initial, k) { i, ms ->
         if (i.n <= 64)
-            solve(i, m)?.first
+            solve(i, ms.last().time)?.first
         else
             null  // ugly fail-safe against rare illegal input to exact solver
     }
@@ -38,21 +38,31 @@ fun optimizeTuplewise(input: Input, initial: Assignment, k: Int, triesPerTuple: 
                       random: Random = Random.Default): Schedule {
  /* assert(k >= 6)
     assert(triesPerTuple > 0) */
-    return optimizeTuplewiseInternal(input, initial, k) { i, m ->
-        val s = List(triesPerTuple) {}
-            .parallelStream()
-            .map { optimizeTuplewise(i, DEFAULT_K, random) }  // TODO: provide `m` as upperbound
-            .min { x, y -> x.second.compareTo(y.second) }.get()
-
-        if (s.second < m)
-            s.first
-        else
+    return optimizeTuplewiseInternal(input, initial, k) { i, ms ->
+        val tries = computeParallel(triesPerTuple) { optimizeTuplewise(i, DEFAULT_K, random) }
+        val makespanBestTry = tries.minOf { it.second }
+        val makespanCurrent = ms.last().time
+        if (makespanBestTry <= makespanCurrent) {
+            val bestTries = tries.filter { it.second == makespanBestTry }.map { it.first }
+            if (bestTries.size > 1 || makespanBestTry == makespanCurrent) {
+                val bestTry = bestTries.minByOrNull { it.calculateScore(i) }!!
+                if (makespanBestTry == makespanCurrent && ms.calculateScore(i) <= bestTry.calculateScore(i))
+                    // only solution(s) with makespan equal to the current were found, and none were structurally better
+                    null
+                else
+                    // (otherwise)
+                    bestTry
+            } else
+                // improvement(s) were found, and there is a clear 'best' (i.e. with the lowest makespan)
+                bestTries.first()
+        } else
+            // only worse solutions were found
             null
     }
 }
 
 private fun optimizeTuplewiseInternal(input: Input, initial: Assignment, k: Int,
-                                      optimizeTuple: (Input, Long) -> Assignment?): Schedule {
+                                      optimizeTuple: (Input, List<Machine>) -> Assignment?): Schedule {
  /* assert(initial.belongsTo(input))
     assert(k < input.m) */
     return initial
@@ -94,14 +104,14 @@ private fun generateCombinations(k: Int, m: Int): List<IntArray> {
 }
 
 private fun Array<Machine>.optimize(tAll: List<Long>, k: Int, tuples: List<IntArray>,
-                                    optimizeTuple: (Input, Long) -> Assignment?) {
+                                    optimizeTuple: (Input, List<Machine>) -> Assignment?) {
     outer@while (true) {
         for (tuple in tuples) {
             val machines = tuple.map { this[it] }
             val tIndices = machines.flatMap { it.jobs }.sortedByDescending { tAll[it] }.interlaced()
             val t = List(tIndices.size) { tAll[tIndices[it]] }
 
-            val assignment = optimizeTuple(Input(t, k), machines.last().time) ?: continue
+            val assignment = optimizeTuple(Input(t, k), machines) ?: continue
 
             // if not null, the newly found assignment is better than the current
             for (m in machines) m.jobs.clear()
@@ -114,3 +124,11 @@ private fun Array<Machine>.optimize(tAll: List<Long>, k: Int, tuples: List<IntAr
         break
     }
 }
+
+private fun Assignment.calculateScore(input: Input): Int {
+    val sums = LongArray(input.m)
+    for (i in indices) sums[this[i]] += input.t[i]
+    return sums.sumOf { (it - input.lowerbound).toInt().squared() }  // smaller is better!
+}
+
+private fun List<Machine>.calculateScore(input: Input) = sumOf { (it.time - input.lowerbound).toInt().squared() }

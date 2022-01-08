@@ -115,6 +115,8 @@ fun <T> StringBuilder.appendPaddedStart(x: T, length: Int, padChar: Char = ' '):
     return this
 }
 
+fun <T> computeParallel(n: Int, f: () -> T) = List(n) {}.parallelStream().map { f() }.toList() as List<T>
+
 fun <T> List<T>.interlaced(): List<T> {
     val m = (size + 1) / 2
     return List(size) {
@@ -124,3 +126,6 @@ fun <T> List<T>.interlaced(): List<T> {
             this[2*(it-m) + 1]
     }
 }
+
+// because `pow` does not exist  :(
+fun Int.squared() = this * this
