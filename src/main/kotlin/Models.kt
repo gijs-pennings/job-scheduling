@@ -9,14 +9,6 @@ class Machine : Comparable<Machine> {
     override fun compareTo(other: Machine) = time.compareTo(other.time)
 }
 
-fun Array<Machine>.toSchedule(input: Input): Schedule {
-    val assignment = IntArray(input.n)
-    for (j in indices)
-        for (i in this[j].jobs)
-            assignment[i] = j
-    return Pair(assignment, last().time)
-}
-
 class Input(val t: List<Long>, val m: Int) {
 
     val n = t.size
@@ -24,8 +16,8 @@ class Input(val t: List<Long>, val m: Int) {
 
     init {
         // only consider non-trivial inputs
-        assert(t.all { it > 0 })
         assert(m in 2 until n)
+        assert(t.all { it > 0 })
     }
 
     private fun calculateMakespan(assignment: Assignment) =
@@ -101,6 +93,14 @@ fun Assignment.toMachines(input: Input): Array<Machine> {
     for (m in machines) m.time = m.jobs.sumOf { input.t[it] }
     machines.sort()
     return machines
+}
+
+fun Array<Machine>.toSchedule(input: Input): Schedule {
+    val assignment = IntArray(input.n)
+    for (j in indices)
+        for (i in this[j].jobs)
+            assignment[i] = j
+    return Pair(assignment, last().time)
 }
 
 

@@ -16,11 +16,11 @@ fun optimizeTuplewise(input: Input, k: Int, triesPerTuple: Int, random: Random =
     optimizeTuplewise(input, optimizeTuplewise(input, DEFAULT_K, random).first, k, triesPerTuple, random)
 
 /**
- * (1) Attempts to improve an [initial] assignment by optimally solving 'subschedules' of `3 <= `[k]` <= 5` machines
- * until no further progress is possible.
+ * (1) Attempts to improve an [initial] assignment by optimally solving 'subschedules' [k]` >= 3` machines until no
+ * further progress is possible.
  */
 fun optimizeTuplewise(input: Input, initial: Assignment, k: Int = DEFAULT_K): Schedule {
- /* assert(k in 3..5) */
+ /* assert(k >= 3) */
     return optimizeTuplewiseInternal(input, initial, k) { i, ms ->
         if (i.n <= 64)
             solve(i, ms.last().time)?.first
@@ -30,13 +30,13 @@ fun optimizeTuplewise(input: Input, initial: Assignment, k: Int = DEFAULT_K): Sc
 }
 
 /**
- * (2) Attempts to improve an [initial] assignment by approximately solving 'subschedules' of [k]` >= 6` machines. These
+ * (2) Attempts to improve an [initial] assignment by approximately solving 'subschedules' of [k]` >= 5` machines. These
  * subschedules are found by running the 'standard' quadruplewise optimizer [triesPerTuple] times and taking the best.
  * This uses multithreading.
  */
 fun optimizeTuplewise(input: Input, initial: Assignment, k: Int, triesPerTuple: Int,
                       random: Random = Random.Default): Schedule {
- /* assert(k >= 6)
+ /* assert(k >= 5)
     assert(triesPerTuple > 0) */
     return optimizeTuplewiseInternal(input, initial, k) { i, ms ->
         val tries = computeParallel(triesPerTuple) { optimizeTuplewise(i, DEFAULT_K, random) }
@@ -45,8 +45,9 @@ fun optimizeTuplewise(input: Input, initial: Assignment, k: Int, triesPerTuple: 
         if (makespanBestTry <= makespanCurrent) {
             val bestTries = tries.filter { it.second == makespanBestTry }.map { it.first }
             if (bestTries.size > 1 || makespanBestTry == makespanCurrent) {
-                val bestTry = bestTries.minByOrNull { it.calculateScore(i) }!!
-                if (makespanBestTry == makespanCurrent && ms.calculateScore(i) <= bestTry.calculateScore(i))
+                val bestTry = bestTries.minByOrNull { it.calculateScore(i, input.lowerbound) }!!
+                if (makespanBestTry == makespanCurrent &&
+                        ms.calculateScore(input.lowerbound) <= bestTry.calculateScore(i, input.lowerbound))
                     // only solution(s) with makespan equal to the current were found, and none were structurally better
                     null
                 else
@@ -125,10 +126,10 @@ private fun Array<Machine>.optimize(tAll: List<Long>, k: Int, tuples: List<IntAr
     }
 }
 
-private fun Assignment.calculateScore(input: Input): Int {
+private fun Assignment.calculateScore(input: Input, perfect: Long): Int {
     val sums = LongArray(input.m)
     for (i in indices) sums[this[i]] += input.t[i]
-    return sums.sumOf { (it - input.lowerbound).toInt().squared() }  // smaller is better!
+    return sums.sumOf { (it - perfect).toInt().squared() }  // smaller is better!
 }
 
-private fun List<Machine>.calculateScore(input: Input) = sumOf { (it.time - input.lowerbound).toInt().squared() }
+private fun List<Machine>.calculateScore(perfect: Long) = sumOf { (it.time - perfect).toInt().squared() }
