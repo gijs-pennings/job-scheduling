@@ -69,6 +69,11 @@ class Input(val t: List<Long>, val m: Int) {
     @JvmName("printSummary2")
     fun printSummary(s: Schedule2) = printSummary(Pair(s.first.toLong(), s.second))
 
+    companion object {
+        fun random(n: Int, m: Int, tMax: Long = 1L shl 48, random: Random = Random.Default) =
+            Input(List(n) { random.nextLong(1, tMax) }, m)
+    }
+
 }
 
 fun Input(path: String): Input {
